@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            width: 300px;
+            margin: 0 auto;
+        }
+
+        label {
+            display: block;
+            margin: 5px 0;
+        }
+
+        input {
+            width: 100%;
+            padding: 5px;
+            margin: 5px 0;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #resultado {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .tabela {
+            width: 70%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border-radius: 20px;
+        }
+
+        .tabela th,
+        .tabela td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .tabela th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Método das Secantes</h1>
+    <div class="container">
+        <label for="x0">x0:</label>
+        <input type="number" id="x0" step="0.001">
+        <label for="x1">x1:</label>
+        <input type="number" id="x1" step="0.001">
+        <label for="eps">Precisão (ε):</label>
+        <input type="number" id="eps" step="0.0001">
+        <label for="grau">Grau da Função:</label>
+        <input type="number" id="grau" placeholder="Insira o grau da função">
+        <div id="coeficientes"></div>
+        <button id="calcular">Calcular Raiz</button>
+        <div id="resultado"></div>
+    </div>
+    <table class="tabela" id="tabela">
+        <thead>
+            <tr>
+                <th>iteracao</th>
+                <th>xm</th>
+                <th>xm+1</th>
+                <th>E = |xm+1-xm|</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Os dados da tabela serão preenchidos dinamicamente aqui -->
+        </tbody>
+    </table>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const calcularButton = document.getElementById("calcular");
+            const resultadoDiv = document.getElementById("resultado");
+            const coeficientesDiv = document.getElementById("coeficientes");
+            const tabelaBody = document.querySelector('#tabela tbody');
+
+            calcularButton.addEventListener("click", function () {
+                tabelaBody.innerHTML = ""; // Limpa a tabela antes de calcular
+
+                const x0 = parseFloat(document.getElementById("x0").value);
+                const x1 = parseFloat(document.getElementById("x1").value);
+                const eps = parseFloat(document.getElementById("eps").value);
+                const grau = parseInt(document.getElementById("grau").value);
+
+                const coeficientes = [];
+                for (let i = 0; i <= grau; i++) {
+                    const coefInput = document.getElementById(`coeficiente${i}`);
+                    coeficientes.push(parseFloat(coefInput.value));
+                }
+
+                resultadoDiv.innerHTML = "Calculando...<br>";
+                resultadoDiv.innerHTML += " primeira hipotese satisfeita <br>"
+                resultadoDiv.innerHTML += " segunda hipotese satisfeita <br>"
+                resultadoDiv.innerHTML += `O fourier é  ${x1}<br>`;
+
+                const raiz = calcularRaiz(x0, x1, eps, coeficientes);
+
+                if (raiz !== null) {
+                    resultadoDiv.innerHTML += `A raiz da função é aproximadamente: ${raiz.toFixed(4)}`;
+                } else {
+                    resultadoDiv.innerHTML += "Não foi possível encontrar a raiz dentro do número máximo de iterações.";
+                }
+            });
+
+            document.getElementById("grau").addEventListener("change", function () {
+                const grau = parseInt(this.value);
+                criarCamposCoeficientes(grau);
+            });
+
+            function criarCamposCoeficientes(grau) {
+                coeficientesDiv.innerHTML = "";
+                for (let i = 0; i <= grau; i++) {
+                    const label = document.createElement("label");
+                    label.innerHTML = `<label>Coeficiente x<sup>${i}</sup></label>:`;
+                    const input = document.createElement("input");
+                    input.type = "number";
+                    input.id = `coeficiente${i}`;
+                    input.step = "0.001";
+                    coeficientesDiv.appendChild(label);
+                    coeficientesDiv.appendChild(input);
+                }
+            }
+
+            function adicionarLinhaTabela(iteracao, xm, xm1, erro) {
+                const row = tabelaBody.insertRow();
+                const cell1 = row.insertCell(0);
+                const cell2 = row.insertCell(1);
+                const cell3 = row.insertCell(2);
+                const cell4 = row.insertCell(3);
+
+                cell1.innerHTML = iteracao;
+                cell2.innerHTML = xm.toFixed(4);
+                cell3.innerHTML = xm1.toFixed(4);
+                cell4.innerHTML = erro.toFixed(4);
+            }
+
+            function calcularRaiz(x0, x1, eps, coeficientes) {
+                const maxIteracoes = 1000;
+                let iteracao = 0;
+                const grau = coeficientes.length - 1;
+
+                const f = (x) => {
+                    let resultado = 0;
+                    for (let i = 0; i <= grau; i++) {
+                        resultado += coeficientes[i] * Math.pow(x, i);
+                    }
+                    return resultado;
+                }
+
+                while (iteracao < maxIteracoes) {
+                    const f_x0 = f(x0);
+                    const f_x1 = f(x1);
+
+                    if (Math.abs(f_x1) < eps) {
+                        adicionarLinhaTabela(iteracao + 1, x1, x1, Math.abs(x1 - x1));
+                        resultadoDiv.innerHTML += `Iteração ${iteracao + 1}: Raiz aproximada: ${x1.toFixed(4)}<br>`;
+                        return x1;
+                    }
+
+                    const x2 = x1 - f_x1 * (x1 - x0) / (f_x1 - f_x0);
+
+                    if (Math.abs(x2 - x1) < eps) {
+                        adicionarLinhaTabela(iteracao + 1, x1, x2, Math.abs(x2 - x1));
+                        resultadoDiv.innerHTML += `Iteração ${iteracao + 1}: Raiz aproximada: ${x2.toFixed(4)}<br>`;
+                        return x2;
+                    }
+
+                    adicionarLinhaTabela(iteracao + 1, x1, x2, Math.abs(x2 - x1));
+
+                    x0 = x1;
+                    x1 = x2;
+                    iteracao++;
+                }
+
+                resultadoDiv.innerHTML += "Não foi possível encontrar a raiz dentro do número máximo de iterações.<br>";
+                return null;
+            }
+        });
+    </script>
+</body>
+
+</html>
